@@ -5,13 +5,15 @@ import random
 import time
 import pdb
 import unittest
-from PIL import Image
+# from PIL import Image
 
 # Finds the L1 distance between two vectors
 # u and v are 1-dimensional np.array objects
-# TODO: Implement this
 def l1(u, v):
-    raise NotImplementedError
+    l1_distance = 0
+    for i in range(len(u)):
+        l1_distance += abs(u[i] - v[i])
+    return l1_distance
 
 # Loads the data into a np array, where each row corresponds to
 # an image patch -- this step is sort of slow.
@@ -84,23 +86,48 @@ def lsh_search(A, hashed_A, functions, query_index, num_neighbors = 10):
     return [t[0] for t in best_neighbors]
 
 # Plots images at the specified rows and saves them each to files.
-def plot(A, row_nums, base_filename):
-    for row_num in row_nums:
-        patch = np.reshape(A[row_num, :], [20, 20])
-        im = Image.fromarray(patch)
-        if im.mode != 'RGB':
-            im = im.convert('RGB')
-        im.save(base_filename + "-" + str(row_num) + ".png")
+# def plot(A, row_nums, base_filename):
+#     for row_num in row_nums:
+#         patch = np.reshape(A[row_num, :], [20, 20])
+#         im = Image.fromarray(patch)
+#         if im.mode != 'RGB':
+#             im = im.convert('RGB')
+#         im.save(base_filename + "-" + str(row_num) + ".png")
 
 # Finds the nearest neighbors to a given vector, using linear search.
 def linear_search(A, query_index, num_neighbors):
-    raise NotImplementedError #TODO
+    distances = []
+    for i in range(len(A)):
+        if i != query_index:
+            distances.append((i, l1(A[query_index], A[i])))
+    best_neighbors = sorted(distances, key=lambda t: t[1])[:num_neighbors]
+    return [t[0] for t in best_neighbors] 
 
 # TODO: Write a function that computes the error measure
 
 # TODO: Solve Problem 4
 def problem4():
-    raise NotImplementedError
+    A = load_data('./data/patches.csv')
+    l1_results = []
+    lsh_results = []
+    l1_average_search_time = 0
+    lsh_average_search_time = 0
+    for i in range(1, 11):
+        start = time.time()
+        l1_results.append((i * 100, linear_search(A, i * 100, 3)))
+        l1_average_search_time += time.time() - start
+    l1_average_search_time /= float(10)
+
+    functions, hashed_A = lsh_setup(A)
+    for i in range(1, 11):
+        start = time.time()
+        lsh_results.append((i * 100, lsh_search(A, hashed_A, functions, i * 100, 3)))
+        lsh_average_search_time += time.time() - start
+    lsh_average_search_time /= float(10)
+    print "-------- L1 Average Search Time ------ ", l1_average_search_time
+    print l1_results    
+    print "------- LSH Average Search Time --------- ", lsh_average_search_time
+    print lsh_results
 
 #### TESTS #####
 
@@ -126,5 +153,5 @@ class TestLSH(unittest.TestCase):
 
 
 if __name__ == '__main__':
-#    unittest.main() ### TODO: Uncomment this to run tests
+    # unittest.main() ### TODO: Uncomment this to run tests
     problem4()
