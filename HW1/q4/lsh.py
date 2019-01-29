@@ -5,7 +5,7 @@ import random
 import time
 import pdb
 import unittest
-# from PIL import Image
+from PIL import Image
 
 # Finds the L1 distance between two vectors
 # u and v are 1-dimensional np.array objects
@@ -83,16 +83,16 @@ def lsh_search(A, hashed_A, functions, query_index, num_neighbors = 10):
     distances = map(lambda r: (r, l1(A[r], A[query_index])), candidate_row_nums)
     best_neighbors = sorted(distances, key=lambda t: t[1])[:num_neighbors]
 
-    return [t[0] for t in best_neighbors]
+    return [t for t in best_neighbors]
 
 # Plots images at the specified rows and saves them each to files.
-# def plot(A, row_nums, base_filename):
-#     for row_num in row_nums:
-#         patch = np.reshape(A[row_num, :], [20, 20])
-#         im = Image.fromarray(patch)
-#         if im.mode != 'RGB':
-#             im = im.convert('RGB')
-#         im.save(base_filename + "-" + str(row_num) + ".png")
+def plot(A, row_nums, base_filename):
+    for row_num in row_nums:
+        patch = np.reshape(A[row_num, :], [20, 20])
+        im = Image.fromarray(patch)
+        if im.mode != 'RGB':
+            im = im.convert('RGB')
+        im.save(base_filename + "-" + str(row_num) + ".png")
 
 # Finds the nearest neighbors to a given vector, using linear search.
 def linear_search(A, query_index, num_neighbors):
@@ -101,32 +101,32 @@ def linear_search(A, query_index, num_neighbors):
         if i != query_index:
             distances.append((i, l1(A[query_index], A[i])))
     best_neighbors = sorted(distances, key=lambda t: t[1])[:num_neighbors]
-    return [t[0] for t in best_neighbors] 
+    return [t for t in best_neighbors] 
 
-# TODO: Write a function that computes the error measure
+# Finds the error between the lsh and l1 methods.
+def error(l1_results, lsh_results):
+    error = 0
+    for i in range(10):
+        numerator = l1_results[i][1][0][1] + l1_results[i][1][1][1] + l1_results[i][1][2][1]
+        denominator = lsh_results[i][1][0][1] + lsh_results[i][1][1][1] + lsh_results[i][1][2][1]
+        error += float(numerator) / float(denominator)
+    error /= 10
+    print 'ERROR: ', error 
+    
 
-# TODO: Solve Problem 4
 def problem4():
     A = load_data('./data/patches.csv')
     l1_results = []
     lsh_results = []
-    l1_average_search_time = 0
-    lsh_average_search_time = 0
     for i in range(1, 11):
-        start = time.time()
         l1_results.append((i * 100, linear_search(A, i * 100, 3)))
-        l1_average_search_time += time.time() - start
-    l1_average_search_time /= float(10)
-
     functions, hashed_A = lsh_setup(A)
     for i in range(1, 11):
-        start = time.time()
         lsh_results.append((i * 100, lsh_search(A, hashed_A, functions, i * 100, 3)))
-        lsh_average_search_time += time.time() - start
-    lsh_average_search_time /= float(10)
-    print "-------- L1 Average Search Time ------ ", l1_average_search_time
-    print l1_results    
-    print "------- LSH Average Search Time --------- ", lsh_average_search_time
+    print '----- L1 Results -----'
+    print l1_results
+    print ''
+    print '----- LSH Results -----'
     print lsh_results
 
 #### TESTS #####
@@ -147,10 +147,6 @@ class TestLSH(unittest.TestCase):
         functions = [f1, f2]
         self.assertTrue(np.array_equal(hash_vector(functions, A[0, :]), np.array([6, 14])))
         self.assertTrue(np.array_equal(hash_data(functions, A), np.array([[6, 14], [15, 77]])))
-
-    ### TODO: Write your tests here (they won't be graded, 
-    ### but you may find them helpful)
-
 
 if __name__ == '__main__':
     # unittest.main() ### TODO: Uncomment this to run tests

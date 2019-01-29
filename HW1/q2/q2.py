@@ -77,13 +77,14 @@ def solution(infile, support):
     get_tuples(infile, singles, tuples, support)  # tuples now contains only frequent pairs
     compute_tuple_confidences(singles, tuples, tuple_confidences)
     top_tuple_confidences = sorted(tuple_confidences, key=tuple_confidences.get, reverse=True)[0:5]
-    # for pair in top_tuple_confidences:
-        # print pair, tuple_confidences[pair]
+    print "Tuples:"
+    for pair in top_tuple_confidences:
+        print pair, tuple_confidences[pair]
     get_triples(infile, tuples, triples, support) # triples now contains only frequent triples
     compute_triple_confidences(tuples, triples, triple_confidences)
-    top_triple_confidences = sorted(triple_confidences, key=triple_confidences.get, reverse=True)[0:50]
-    # for triple in top_triple_confidences:
-        # print triple, triple_confidences[triple]
-
+    top_triple_confidences = sorted(sorted(triple_confidences, key=triple_confidences.get, reverse=True)[0:5])
+    print "Triples:"
+    for triple in top_triple_confidences:
+        print triple, triple_confidences[triple]
 
 solution('data/browsing.txt', 100)
