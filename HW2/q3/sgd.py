@@ -8,9 +8,9 @@ import math
     @param iterations: number of training iterations
     @param k: training features
     @param l: regularization constant
-    @param nu: learning rate
+    @param eta: learning rate
 """
-def sgd(data, iterations=40, k=20, l=0.1, nu=0.01):
+def sgd(data, iterations=40, k=20, l=0.1, eta=0.01):
     q = defaultdict(lambda: np.array([random.uniform(0, math.sqrt(float(5)/k)) for i in range(k)]))
     p = defaultdict(lambda: np.array([random.uniform(0, math.sqrt(float(5)/k)) for i in range(k)]))
     with open(data) as ratings:
@@ -20,8 +20,8 @@ def sgd(data, iterations=40, k=20, l=0.1, nu=0.01):
             for rating in ratings: 
                 u, i, r_iu = rating.split()                     # u: user id; i: movie id; r_iu: rating of movie i by user u
                 e_iu = 2 * (float(r_iu) - np.dot(q[i], p[u]))   # e_iu: derivative of error for rating of movie i by user u
-                q_update = np.multiply(nu, np.add(np.multiply(e_iu, p[u]), np.multiply(-2 * l, q[i])))
-                p_update = np.multiply(nu, np.add(np.multiply(e_iu, q[i]), np.multiply(-2 * l, p[u])))
+                q_update = np.multiply(eta, np.add(np.multiply(e_iu, p[u]), np.multiply(-2 * l, q[i])))
+                p_update = np.multiply(eta, np.add(np.multiply(e_iu, q[i]), np.multiply(-2 * l, p[u])))
                 q[i] = np.add(q[i], q_update)
                 p[u] = np.add(p[u], p_update)
 

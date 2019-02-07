@@ -1,6 +1,5 @@
 import sys
 import math
-# import numpy as np
 from pyspark import SparkConf, SparkContext
 
 MAX_ITER = 20
@@ -33,7 +32,7 @@ def manhattan_distance(a, b):
 
 #  Calculates the nearest centroid to the given point.
 #  Represents chosen centroid as an index into the centroid list
-def nearest_centroid(point, distance_function):
+def nearest_centroid(point, centroids, distance_function):
     closest = -1
     shortest_distance = float('inf')
     for i in range(len(centroids)):
@@ -55,80 +54,31 @@ def compute_new_centroids(clusters, counts):
         clusters[i] = (clusters[i][0], list(map(lambda x: x / counts[clusters[i][0]], clusters[i][1])))
     return [x[1] for x in clusters]
 
-#
+#  Each line contains the calculated cost, iteration number implied by order 
 def write_output(costs, outfile):
     with open(outfile, 'w') as out_file:
         for i in range(len(costs)):
-            out_file.write(str(i + 1) + ' ' + str(costs[i]) + '\n')
-
+            out_file.write(str(costs[i]) + '\n')
 
 # ---------------------------------------------------------- #
 #             Spark Iterative K-Means Clustering             #                                        
 # ---------------------------------------------------------- #
+def k_means_clustering(initial_centroids_file, distance_function, output_file):
+    centroids = read_initial_centroids(initial_centroids_file)
+    iteration_costs = []
+    for _ in range(MAX_ITER):
+        clusters_rdd = data_rdd.map(lambda point: nearest_centroid(point, centroids, distance_function))  # Each element of clusters_rdd is a tuple: (index of centroid, (point, cost))
+        iteration_costs.append(clusters_rdd.map(lambda point: point[1][1]).reduce(lambda total, x: total + x))  # Calculates the total iteration cost by summing individual costs
+        summed_clusters_rdd = clusters_rdd.map(lambda point: (point[0], point[1][0]))\
+                                        .reduceByKey(lambda total, curr: add_points(total, curr))  # Each element of summed_clusters_rdd is a tuple (index of centroid, sum of points in cluster)
+        centroids = compute_new_centroids(summed_clusters_rdd.collect(), clusters_rdd.countByKey())  # Recompute centroids by calculating mean of each cluster
+    write_output(iteration_costs, output_file)
+
 conf = SparkConf()
 sc = SparkContext(conf=conf)
 data_rdd = sc.textFile(DATA_FILE).map(lambda line: [float(x) for x in line.split()])  # Each element of data_rdd is a list of floats that represents the point 
-iteration_costs = []
-
-
-# ---------------------------------------------------------- #
-#                C1_FILE + Euclidean Distance                #                                        
-# ---------------------------------------------------------- #
-centroids = read_initial_centroids(C1_FILE)
-for _ in range(MAX_ITER):
-    clusters_rdd = data_rdd.map(lambda point: nearest_centroid(point, False))  # Each element of clusters_rdd is a tuple: (index of centroid, (point, cost))
-    iteration_cost = clusters_rdd.map(lambda point: point[1][1]).reduce(lambda total, x: total + x) # Calculates the total iteration cost by summing individual costs
-    iteration_costs.append(iteration_cost)
-    summed_clusters_rdd = clusters_rdd.map(lambda point: (point[0], point[1][0]))\
-                                    .reduceByKey(lambda total, curr: add_points(total, curr))  # Each element of summed_clusters_rdd is a tuple (index of centroid, sum of points in cluster)
-    centroids = compute_new_centroids(summed_clusters_rdd.collect(), clusters_rdd.countByKey())  # Recompute centroids by calculating mean of each cluster
-write_output(iteration_costs, 'ouput_c1_eucl.txt')
-iteration_costs = []
-
-
-# ---------------------------------------------------------- #
-#                C1_FILE + Manhattan Distance                #                                        
-# ---------------------------------------------------------- #
-centroids = read_initial_centroids(C1_FILE)
-for _ in range(MAX_ITER):
-    clusters_rdd = data_rdd.map(lambda point: nearest_centroid(point, True))  # Each element of clusters_rdd is a tuple: (index of centroid, (point, cost))
-    iteration_cost = clusters_rdd.map(lambda point: point[1][1]).reduce(lambda total, x: total + x) # Calculates the total iteration cost by summing individual costs
-    iteration_costs.append(iteration_cost)
-    summed_clusters_rdd = clusters_rdd.map(lambda point: (point[0], point[1][0]))\
-                                    .reduceByKey(lambda total, curr: add_points(total, curr))  # Each element of summed_clusters_rdd is a tuple (index of centroid, sum of points in cluster)
-    centroids = compute_new_centroids(summed_clusters_rdd.collect(), clusters_rdd.countByKey())  # Recompute centroids by calculating mean of each cluster
-write_output(iteration_costs, 'output_c1_man.txt')
-iteration_costs = []
-
-
-# ---------------------------------------------------------- #
-#                C2_FILE + Euclidean Distance                #                                        
-# ---------------------------------------------------------- #
-centroids = read_initial_centroids(C2_FILE)
-for _ in range(MAX_ITER):
-    clusters_rdd = data_rdd.map(lambda point: nearest_centroid(point, False))  # Each element of clusters_rdd is a tuple: (index of centroid, (point, cost))
-    iteration_cost = clusters_rdd.map(lambda point: point[1][1]).reduce(lambda total, x: total + x) # Calculates the total iteration cost by summing individual costs
-    iteration_costs.append(iteration_cost)
-    summed_clusters_rdd = clusters_rdd.map(lambda point: (point[0], point[1][0]))\
-                                    .reduceByKey(lambda total, curr: add_points(total, curr))  # Each element of summed_clusters_rdd is a tuple (index of centroid, sum of points in cluster)
-    centroids = compute_new_centroids(summed_clusters_rdd.collect(), clusters_rdd.countByKey())  # Recompute centroids by calculating mean of each cluster
-write_output(iteration_costs, 'output_c2_euc.txt')
-iteration_costs = []
-
-
-# ---------------------------------------------------------- #
-#                C2_FILE + Manhattan Distance                #                                        
-# ---------------------------------------------------------- #
-centroids = read_initial_centroids(C2_FILE)
-for _ in range(MAX_ITER):
-    clusters_rdd = data_rdd.map(lambda point: nearest_centroid(point, True))  # Each element of clusters_rdd is a tuple: (index of centroid, (point, cost))
-    iteration_cost = clusters_rdd.map(lambda point: point[1][1]).reduce(lambda total, x: total + x) # Calculates the total iteration cost by summing individual costs
-    iteration_costs.append(iteration_cost)
-    summed_clusters_rdd = clusters_rdd.map(lambda point: (point[0], point[1][0]))\
-                                    .reduceByKey(lambda total, curr: add_points(total, curr))  # Each element of summed_clusters_rdd is a tuple (index of centroid, sum of points in cluster)
-    centroids = compute_new_centroids(summed_clusters_rdd.collect(), clusters_rdd.countByKey())  # Recompute centroids by calculating mean of each cluster
-write_output(iteration_costs, 'output_c2_man.txt')
-iteration_costs = []
-
-
+k_means_clustering(C1_FILE, False, 'output_c1_eucl.txt')
+k_means_clustering(C1_FILE, True, 'output_c1_man.txt')
+k_means_clustering(C2_FILE, False, 'output_c2_eucl.txt')
+k_means_clustering(C2_FILE, True, 'output_c2_man.txt')
 sc.stop()
